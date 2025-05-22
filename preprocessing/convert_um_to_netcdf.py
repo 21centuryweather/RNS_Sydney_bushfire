@@ -52,9 +52,11 @@ variables_todo = [
     'surface_net_longwave_flux', 'surface_net_shortwave_flux','ground_heat_flux', 'surface_altitude'
     ]
 
-variables = ['land_sea_mask','stratiform_rainfall_amount','stratiform_rainfall_flux',
-             'air_temperature','wind_u','wind_v','wind_speed_of_gust','specific_humidity']
-variables = ['specific_humidity','soil_moisture_l1','surface_runoff_flux']
+variables_done = ['land_sea_mask','stratiform_rainfall_amount','stratiform_rainfall_flux',
+             'air_temperature','wind_u','wind_v','wind_speed_of_gust','specific_humidity',
+             'specific_humidity','soil_moisture_l1','surface_runoff_flux','surface_altitude']
+
+variables = ['surface_altitude']
 
 ###############################################################################
 # dictionary of experiments
@@ -100,51 +102,47 @@ def get_um_data(exp,opts):
 
     print(f'processing {exp} (constraint: {opts["constraint"]})')
 
-    # Operational model data
-    if exp in ['BARRA-R2', 'BARRA-C2']:
-        print('BARRA not yet implemented')
-        # da = get_barra_data(ds,opts,exp)
-    else:
-        fpath = f"{exp_paths[exp]}/{opts['fname']}*"
-        try:
-            cb = iris.load_cube(fpath, constraint=opts['constraint'])
-            # fix timestamp/bounds error in accumulations
-            if cb.coord('time').bounds is not None:
-                print('WARNING: updating time point to right bound')
-                cb.coord('time').points = cb.coord('time').bounds[:,1]
-            da = xr.DataArray().from_iris(cb)
-        except Exception as e:
-            print(f'trouble opening {fpath}')
-            print(e)
-            return None
 
-        # fix time dimension name if needed
-        if ('time' not in da.dims) and (variable not in ['land_sea_mask','surface_altitude']):
-            print('WARNING: updating time dimension name from dim_0')
-            da = da.swap_dims({'dim_0': 'time'})
 
-        da = filter_odd_times(da)
+    fpath = f"{exp_paths[exp]}/{opts['fname']}*"
+    try:
+        cb = iris.load_cube(fpath, constraint=opts['constraint'])
+        # fix timestamp/bounds error in accumulations
+        if cb.coord('time').bounds is not None:
+            print('WARNING: updating time point to right bound')
+            cb.coord('time').points = cb.coord('time').bounds[:,1]
+        da = xr.DataArray().from_iris(cb)
+    except Exception as e:
+        print(f'trouble opening {fpath}')
+        print(e)
+        return None
 
-        if opts['constraint'] in [
-            'air_temperature', 
-            'soil_temperature', 
-            'dew_point_temperature', 
-            'surface_temperature'
-            ]:
+    # fix time dimension name if needed
+    if ('time' not in da.dims) and (variable not in ['land_sea_mask','surface_altitude']):
+        print('WARNING: updating time dimension name from dim_0')
+        da = da.swap_dims({'dim_0': 'time'})
 
-            print('converting from K to °C')
-            da = da - 273.15
-            da.attrs['units'] = '°C'
+    da = filter_odd_times(da)
 
-        if opts['constraint'] in ['stratiform_rainfall_flux_mean']:
-            print('converting from mm/s to mm/h')
-            da = da * 3600.
-            da.attrs['units'] = 'mm/h'
+    if opts['constraint'] in [
+        'air_temperature', 
+        'soil_temperature', 
+        'dew_point_temperature', 
+        'surface_temperature'
+        ]:
 
-        if opts['constraint'] in ['moisture_content_of_soil_layer']:
-            da = da.isel(depth=opts['level'])
+        print('converting from K to °C')
+        da = da - 273.15
+        da.attrs['units'] = '°C'
 
-        # print(da.head())
+    if opts['constraint'] in ['stratiform_rainfall_flux_mean']:
+        print('converting from mm/s to mm/h')
+        da = da * 3600.
+        da.attrs['units'] = 'mm/h'
+
+    if opts['constraint'] in ['moisture_content_of_soil_layer']:
+        da = da.isel(depth=opts['level'])
+
 
     return da
 
