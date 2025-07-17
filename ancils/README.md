@@ -14,10 +14,16 @@ rose suite-run -O rns_bluemountains --name=ancil_blue_mountains
 ### plot_domains.py
 
 This file plots domains found in defined cylc-run directory.
-It uses xp66 analysis3 modules, i.e. 
+It requires xp65 modules, i.e. do:
 
 `module use /g/data/xp65/public/modules;module load conda/analysis3`
 
+
+`python plot_domains.py`
+
+Output:
+
+![domains](Bluemountains_domains_surface_altitude.png)
 
 For different cylc-run dirs, or region names, update:
 
@@ -25,5 +31,3 @@ For different cylc-run dirs, or region names, update:
 cylc_dir = 'ancil_blue_mountains'
 region = 'Bluemountains'
 ```
-
-![domains](Bluemountains_domains_surface_altitude.png)
