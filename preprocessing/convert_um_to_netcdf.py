@@ -31,10 +31,14 @@ importlib.reload(cf)
 tic = time.perf_counter()
 
 ######## set up ########
-cylc_id = 'rns_ostia_2019_bushfire'
+cylc_id = 'rns_SY_ECL'
+cylc_id = 'rns_ostia_2019_era5l_10min'
 
+cycle_path = f'/scratch/ce10/mjl561/cylc-run/{cylc_id}/share/cycle'
+
+datapath = f'/g/data/fy29/mjl561/cylc-run/rns_ostia_L70_test/netcdf'
 datapath = f'/g/data/fy29/mjl561/cylc-run/rns_ostia_2019_bushfire/netcdf'
-cycle_path = f'/scratch/ce10/mjl561/cylc-run/rns_ostia_2019_era5l_10min/share/cycle'
+
 
 variables_todo = [
     'land_sea_mask','air_temperature','surface_temperature','relative_humidity',
@@ -47,7 +51,7 @@ variables_todo = [
     'surface_runoff_flux','subsurface_runoff_flux','surface_total_moisture_flux',
     'surface_temperature','boundary_layer_thickness','surface_air_pressure',
     'fog_area_fraction','visibility','cloud_area_fraction',
-    'stratiform_rainfall_amount','stratiform_rainfall_flux',
+    'stratiform_rainfall_amount','stratiform_rainfall_flux','convective_rainfall_amount', 'total_precipitation_rate',
     'toa_outgoing_shortwave_flux','toa_outgoing_shortwave_flux_corrected','toa_outgoing_longwave_flux',
     'surface_net_longwave_flux', 'surface_net_shortwave_flux','ground_heat_flux', 'surface_altitude'
     ]
@@ -56,13 +60,20 @@ variables_done = ['land_sea_mask','stratiform_rainfall_amount','stratiform_rainf
              'air_temperature','wind_u','wind_v','wind_speed_of_gust','specific_humidity',
              'specific_humidity','soil_moisture_l1','surface_runoff_flux','surface_altitude']
 
+variables = ['stratiform_rainfall_amount','stratiform_rainfall_flux']
+variables = ['convective_rainfall_flux']
 variables = ['surface_altitude']
+variables = ['total_precipitation_rate']
+variables = ['stratiform_rainfall_amount']
+variables = ['land_sea_mask']
 
 ###############################################################################
 # dictionary of experiments
 
 exps = [
         ### Parent models ###
+        'E5L_11p1_CCI_WC',
+        # 'BR2_12p2_CCI_WC',
         # 'E5L_11p1_CCI',
         # 'BR2_12p2_CCI',
         # ## ERA5-Land CCI ###
@@ -93,6 +104,9 @@ exps = [
         # 'E5L_5_CCI_no_urban',
         # 'E5L_1_CCI_no_urban',
         # 'E5L_1_L_CCI_no_urban',
+        # ### BARRA CCI WorldCover ###
+        # 'BR2_5_L70_CCI_WC',
+        # 'BR2_1_from_5_L70_CCI_WC',
         ]
 
 ###############################################################################
@@ -101,8 +115,6 @@ def get_um_data(exp,opts):
     '''gets UM data, converts to xarray and local time'''
 
     print(f'processing {exp} (constraint: {opts["constraint"]})')
-
-
 
     fpath = f"{exp_paths[exp]}/{opts['fname']}*"
     try:
@@ -220,6 +232,9 @@ if __name__ == "__main__":
                     f'BR2_{res}_IGBP' : f'{cycle_path}/{cycle}/BARRA_IGBP/SY_{res}/RAL3P2/um' for res in reses
                 }|{
                     f'BR2_{res}_CCI_no_urban': f'{cycle_path}/{cycle}/BARRA_CCI_no_urban/SY_{res}/RAL3P2/um' for res in reses
+                }|{
+                    f'BR2_5_L70_CCI_WC': f'{cycle_path}/{cycle}/BARRA_CCI_WC/SY_5_L70/RAL3P2/um',
+                    f'BR2_1_from_5_L70_CCI_WC': f'{cycle_path}/{cycle}/BARRA_CCI_WC/SY_1_from_5_L70/RAL3P2/um',
                 }
 
                 # check if first exp in exp_path directory exists, if not drop the cycle from cyclSY_e_list
@@ -235,23 +250,32 @@ if __name__ == "__main__":
                     continue
 
                 da = get_um_data(exp,opts)
+
                 if da is None:
                     print(f'WARNING: no data found at {cycle}')
                 else:
                     da_list.append(da)
 
-                # for time invarient variables (land_sea_mask) only get the first cycle
-                if variable == 'land_sea_mask':
-                    print('land_sea_mask only needs one cycle')
+                # for time invarient variables (land_sea_mask, surface_altitude) only get the first cycle
+                if variable in ['land_sea_mask', 'surface_altitude']:
+                    print('only needs one cycle')
                     break
 
             print('concatenating, adjusting, computing data')
-            ds = xr.concat(da_list, dim='time')
+            try: 
+                ds = xr.concat(da_list, dim='time')
+            except ValueError as e:
+                print(f'ValueError: {e}')
+                print('no data to concatenate, skipping')
+                continue
             # da = da.compute()
 
             # set decimal precision to reduce filesize (definded fmt precision +1)
             precision = int(opts['fmt'].split('.')[1][0]) + 1
-            ds = ds.round(precision)
+            if precision < 4:
+                ds = ds.round(precision)
+            else:
+                print(f'WARNING: precision {precision} is too high, not rounding')
 
             # drop unessasary dimensions
             if 'forecast_period' in ds.coords:
