@@ -37,3 +37,5 @@ More info here: https://github.com/21centuryweather/RNS_Sydney_bushfire/tree/mai
 ## Experiments
 
 Description of experiments
+
+<img width="468" height="166" alt="image" src="https://github.com/user-attachments/assets/70c69e67-933a-4bd1-ba6c-e3146e6b6e76" />
