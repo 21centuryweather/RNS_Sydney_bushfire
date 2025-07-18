@@ -2,8 +2,9 @@
 Impact of megafires on weather
 
 ## Contributions
+- Abby Smyth: experiment design, final model runs, all analysis
+- Ailie Gallant: experiment design, supervision
 - Mathew Lipson: ancillary generation, initial model runs
-- Abby Smyth: final model runs, analysis
 
 ## Configuration
 

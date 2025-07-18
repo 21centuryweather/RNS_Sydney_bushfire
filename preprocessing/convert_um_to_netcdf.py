@@ -68,8 +68,8 @@ variables = ['stratiform_rainfall_amount']
 variables = ['total_precipitation_rate']
 variables = ['convective_rainfall_flux']
 variables = ['stratiform_rainfall_flux']
-variables = ['soil_moisture_l2']
 variables = ['surface_altitude']
+variables = ['soil_moisture_l2']
 
 ###############################################################################
 
