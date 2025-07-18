@@ -24,14 +24,19 @@ More info here: https://github.com/21centuryweather/RNS_Sydney_bushfire/tree/mai
 
 ## Compute
 
-|          | y_npts | x_npts | nproc | CPUS | SU/6hrs  | walltime/6hrs  |
-|----------|--------|--------|-------|------|----------|----------------|
-| d11000   | 300    | 300    | 16x12 | 192  | 12       | 2 mins         |
-| d0198    | 450    | 450    | 24x24 | 576  | 112      | 6 mins         |
+Major tasks:
+
+|               | y_npts | x_npts | nproc | CPUS | SU/12hrs | walltime/12hrs  |
+|---------------|--------|--------|-------|------|----------|-----------------|
+| ec_um_recon   |        |        |       | 192  | 96       | 1 min           |
+| d11000 fcst   | 300    | 300    | 16x12 | 192  | 19       | 3 min           |
+| d11000 recon  |        |        |       | 192  | 5        | 1 min           |
+| d0198  fcst   | 450    | 450    | 24x24 | 576  | 230      | 12 min          |
+| d0198  recon  |        |        |       | 192  | 8        | 1 min           |
 
 ### Total per day
 
-- ~500 SU per day
+- ~725 SU per day
 - ~30 min walltime per day
 
 ## Experiments
