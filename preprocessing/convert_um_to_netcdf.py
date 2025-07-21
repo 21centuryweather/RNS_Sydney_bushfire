@@ -1,4 +1,4 @@
-__version__ = "2025-05-21"
+__version__ = "2025-07-18"
 __author__ = "Mathew Lipson"
 __email__ = "m.lipson@unsw.edu.au"
 
@@ -31,10 +31,16 @@ importlib.reload(cf)
 tic = time.perf_counter()
 
 ######## set up ########
-cylc_id = 'rns_ostia_2019_bushfire'
 
-datapath = f'/g/data/fy29/mjl561/cylc-run/rns_ostia_2019_bushfire/netcdf'
-cycle_path = f'/scratch/ce10/mjl561/cylc-run/rns_ostia_2019_era5l_10min/share/cycle'
+cylc_id = 'u-dr216'
+region = 'Bluemountains'
+project = 'fy29'
+user = 'mjl561'
+
+########################
+
+cycle_path = f'/scratch/{project}/{user}/cylc-run/{cylc_id}/share/cycle'
+datapath = f'/g/data/{project}/{user}/cylc-run/{cylc_id}/netcdf'
 
 variables_todo = [
     'land_sea_mask','air_temperature','surface_temperature','relative_humidity',
@@ -47,7 +53,7 @@ variables_todo = [
     'surface_runoff_flux','subsurface_runoff_flux','surface_total_moisture_flux',
     'surface_temperature','boundary_layer_thickness','surface_air_pressure',
     'fog_area_fraction','visibility','cloud_area_fraction',
-    'stratiform_rainfall_amount','stratiform_rainfall_flux',
+    'stratiform_rainfall_amount','stratiform_rainfall_flux','convective_rainfall_amount', 'total_precipitation_rate',
     'toa_outgoing_shortwave_flux','toa_outgoing_shortwave_flux_corrected','toa_outgoing_longwave_flux',
     'surface_net_longwave_flux', 'surface_net_shortwave_flux','ground_heat_flux', 'surface_altitude'
     ]
@@ -56,55 +62,23 @@ variables_done = ['land_sea_mask','stratiform_rainfall_amount','stratiform_rainf
              'air_temperature','wind_u','wind_v','wind_speed_of_gust','specific_humidity',
              'specific_humidity','soil_moisture_l1','surface_runoff_flux','surface_altitude']
 
+variables = ['stratiform_rainfall_amount','stratiform_rainfall_flux']
+variables = ['land_sea_mask']
+variables = ['stratiform_rainfall_amount']
+variables = ['total_precipitation_rate']
+variables = ['convective_rainfall_flux']
+variables = ['stratiform_rainfall_flux']
 variables = ['surface_altitude']
-
-###############################################################################
-# dictionary of experiments
-
-exps = [
-        ### Parent models ###
-        # 'E5L_11p1_CCI',
-        # 'BR2_12p2_CCI',
-        # ## ERA5-Land CCI ###
-        # 'E5L_5_CCI',
-        # 'E5L_1_CCI',
-        # 'E5L_1_L_CCI',
-        # ### ERA5-Land CCI WordCover ###
-        'E5L_5_CCI_WC',
-        'E5L_1_CCI_WC',
-        # 'E5L_1_L_CCI_WC',
-        # ### BARRA CCI ###
-        # 'BR2_5_CCI',
-        # 'BR2_1_CCI',
-        # 'BR2_1_L_CCI',
-        # ### BARRA CCI WorldCover ###
-        # 'BR2_5_CCI_WC',
-        # 'BR2_1_CCI_WC',
-        # 'BR2_1_L_CCI_WC',
-        # ### BARRA IGBP ###
-        # 'BR2_5_IGBP',
-        # 'BR2_1_IGBP',
-        # 'BR2_1_L_IGBP',
-        ### BARRA CCI no urban ###
-        # 'BR2_5_CCI_no_urban',
-        # 'BR2_1_CCI_no_urban',
-        # 'BR2_1_L_CCI_no_urban',
-        ### ERA5-Land CCI no urban ###
-        # 'E5L_5_CCI_no_urban',
-        # 'E5L_1_CCI_no_urban',
-        # 'E5L_1_L_CCI_no_urban',
-        ]
+variables = ['soil_moisture_l2']
 
 ###############################################################################
 
-def get_um_data(exp,opts):
+def get_um_data(exp, exp_path, opts):
     '''gets UM data, converts to xarray and local time'''
 
     print(f'processing {exp} (constraint: {opts["constraint"]})')
 
-
-
-    fpath = f"{exp_paths[exp]}/{opts['fname']}*"
+    fpath = f"{exp_path}/{opts['fname']}*"
     try:
         cb = iris.load_cube(fpath, constraint=opts['constraint'])
         # fix timestamp/bounds error in accumulations
@@ -142,7 +116,14 @@ def get_um_data(exp,opts):
 
     if opts['constraint'] in ['moisture_content_of_soil_layer']:
         da = da.isel(depth=opts['level'])
-
+        
+    # Convert soil moisture from kg m-2 to volumetric water content (m3 m-3)
+    if variable.startswith('soil_moisture_l'):
+        print('WARNING: converting soil moisture from kg m-2 to volumetric water content (m3 m-3)')
+        layer_thickness = float(da.depth.values)  # m (soil layer thickness)
+        water_density = 1000.0  # kg m-3
+        da = da / (layer_thickness * water_density)
+        da.attrs['units'] = 'm3 m-3'
 
     return da
 
@@ -185,7 +166,13 @@ if __name__ == "__main__":
         cycle_list = sorted([x.split('/')[-2] for x in glob.glob(f'{cycle_path}/*/')])
         assert len(cycle_list) > 0, f"no cycles found in {cycle_path}"
 
-        for exp in exps:
+        first_cycle_path =  f'{cycle_path}/{cycle_list[0]}/{region}'
+
+        # Dynamically discover experiment directories from first cycle
+        exp_dirs = sorted([d for d in os.listdir(first_cycle_path) if os.path.isdir(os.path.join(first_cycle_path, d))])
+        print(f'Found experiment directories: {exp_dirs}')
+
+        for exp in exp_dirs:
             out_dir = f'{datapath}/{opts["plot_fname"]}'
 
             # make directory if it doesn't exist
@@ -197,61 +184,57 @@ if __name__ == "__main__":
                 print('========================')
                 print(f'getting {exp} {i}: {cycle}\n')
 
-                # set paths to experiment outputs
-                reses = ['5','1','1_L']
-                exp_paths = {
-                    f'E5L_11p1_CCI': f'{cycle_path}/{cycle}/ERA5LAND_CCI/SY_11p1/GAL9/um',
-                    f'E5L_11p1_CCI_WC': f'{cycle_path}/{cycle}/ERA5LAND_CCI_WC/SY_11p1/GAL9/um',
-                    f'BR2_12p2_CCI':  f'{cycle_path}/{cycle}/BARRA_CCI/SY_12p2/GAL9/um',
-                    f'BR2_12p2_CCI_WC':  f'{cycle_path}/{cycle}/BARRA_CCI_WC/SY_12p2/GAL9/um',
-                    f'BR2_12p2_IGBP' : f'{cycle_path}/{cycle}/BARRA_IGBP/SY_12p2/GAL9/um',
-                    f'BR2_12p2_CCI_no_urban': f'{cycle_path}/{cycle}/BARRA_CCI_no_urban/SY_12p2/GAL9/um',
-                }|{
-                    f'E5L_{res}_CCI': f'{cycle_path}/{cycle}/ERA5LAND_CCI/SY_{res}/RAL3P2/um' for res in reses
-                }|{
-                    f'E5L_{res}_CCI_WC': f'{cycle_path}/{cycle}/ERA5LAND_CCI_WC/SY_{res}/RAL3P2/um' for res in reses
-                }|{
-                    f'E5L_{res}_CCI_no_urban': f'{cycle_path}/{cycle}/ERA5LAND_CCI_no_urban/SY_{res}/RAL3P2/um' for res in reses
-                }|{
-                    f'BR2_{res}_CCI':  f'{cycle_path}/{cycle}/BARRA_CCI/SY_{res}/RAL3P2/um' for res in reses
-                }|{
-                    f'BR2_{res}_CCI_WC':  f'{cycle_path}/{cycle}/BARRA_CCI_WC/SY_{res}/RAL3P2/um' for res in reses
-                }|{
-                    f'BR2_{res}_IGBP' : f'{cycle_path}/{cycle}/BARRA_IGBP/SY_{res}/RAL3P2/um' for res in reses
-                }|{
-                    f'BR2_{res}_CCI_no_urban': f'{cycle_path}/{cycle}/BARRA_CCI_no_urban/SY_{res}/RAL3P2/um' for res in reses
-                }
-
-                # check if first exp in exp_path directory exists, if not drop the cycle from cyclSY_e_list
-                if not os.path.exists(exp_paths[exp]):
-                    print(f'path {exp_paths[exp]} does not exist')
+                # Dynamically find the experiment path by searching subdirectories
+                exp_base_path = f'{cycle_path}/{cycle}/{region}/{exp}'
+                
+                # Find the um directory by searching through subdirectories
+                exp_path = None
+                if os.path.exists(exp_base_path):
+                    # Walk through subdirectories to find the 'um' directory
+                    for root, dirs, files in os.walk(exp_base_path):
+                        if 'um' in dirs:
+                            exp_path = os.path.join(root, 'um')
+                            break
+                
+                # check if experiment path exists, if not skip this cycle
+                if exp_path is None or not os.path.exists(exp_path):
+                    print(f'path {exp_path} does not exist')
                     cycle_list.remove(cycle)
                     continue
 
                 # check if any of the variables files are in the directory
-                if len(glob.glob(f"{exp_paths[exp]}/{opts['fname']}*")) == 0:
-                    print(f'no files in {exp_paths[exp]}')
+                if len(glob.glob(f"{exp_path}/{opts['fname']}*")) == 0:
+                    print(f'no files in {exp_path}')
                     cycle_list.remove(cycle)
                     continue
 
-                da = get_um_data(exp,opts)
+                da = get_um_data(exp, exp_path, opts)
+
                 if da is None:
                     print(f'WARNING: no data found at {cycle}')
                 else:
                     da_list.append(da)
 
-                # for time invarient variables (land_sea_mask) only get the first cycle
-                if variable == 'land_sea_mask':
-                    print('land_sea_mask only needs one cycle')
+                # for time invarient variables (land_sea_mask, surface_altitude) only get the first cycle
+                if variable in ['land_sea_mask', 'surface_altitude']:
+                    print('only needs one cycle')
                     break
 
             print('concatenating, adjusting, computing data')
-            ds = xr.concat(da_list, dim='time')
+            try: 
+                ds = xr.concat(da_list, dim='time')
+            except ValueError as e:
+                print(f'ValueError: {e}')
+                print('no data to concatenate, skipping')
+                continue
             # da = da.compute()
 
             # set decimal precision to reduce filesize (definded fmt precision +1)
             precision = int(opts['fmt'].split('.')[1][0]) + 1
-            ds = ds.round(precision)
+            if precision < 4:
+                ds = ds.round(precision)
+            else:
+                print(f'WARNING: precision {precision} is too high, not rounding')
 
             # drop unessasary dimensions
             if 'forecast_period' in ds.coords:

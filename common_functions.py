@@ -1,5 +1,43 @@
 import iris
 
+def make_mp4(fnamein,fnameout,fps=9,quality=26):
+    '''
+    Uses ffmpeg to create mp4 with custom codec and options for maximum compatability across OS.
+        fnamein (string): The image files to create animation from, with wildcards (*).
+        fnameout (string): The output filename (excluding extension)
+        fps (float): The frames per second.
+        quality (float): quality ranges 0 to 51, 51 being worst.
+    '''
+
+    import glob
+    import imageio.v2 as imageio
+
+    # collect animation frames
+    fnames = sorted(glob.glob(fnamein))
+    if len(fnames)==0:
+        print('no files found to process, check fnamein')
+        return
+    img_shp = imageio.imread(fnames[0]).shape
+    out_h, out_w = img_shp[0],img_shp[1]
+
+    # resize output to blocksize for maximum capatability between different OS
+    macro_block_size=16
+    if out_h % macro_block_size > 0:
+        out_h += macro_block_size - (out_h % macro_block_size)
+    if out_w % macro_block_size > 0:
+        out_w += macro_block_size - (out_w % macro_block_size)
+
+    # quality ranges 0 to 51, 51 being worst.
+    assert 0 <= quality <= 51, "quality must be between 1 and 51 inclusive"
+
+    # use ffmpeg command to create mp4
+    command = f'ffmpeg -framerate {fps} -pattern_type glob -i "{fnamein}" \
+        -vcodec libx264 -crf {quality} -s {out_w}x{out_h} -pix_fmt yuv420p -y {fnameout}.mp4'
+    os.system(command)
+
+    return f'completed, see: {fnameout}.mp4'
+
+
 def get_variable_opts(variable):
     '''standard variable options for plotting. to be updated within master script as needed
     
@@ -602,19 +640,19 @@ def get_variable_opts(variable):
     elif variable == 'total_precipitation_rate':
         opts.update({
             'constraint': iris.Constraint(
-                name='precipitation_flux', 
+                name='precipitation_flux',
                 cube_func=lambda cube: iris.coords.CellMethod(
                     method='mean', coords='time', intervals='1 hour'
                     ) in cube.cell_methods),
             'plot_title': 'precipitation rate',
-            'plot_fname': 'prcp_rate',
+            'plot_fname': 'total_precipitation_rate',
             'units'     : 'kg m-2',
             'obs_key'   : 'precip_last_aws_obs',
             'fname'     : 'umnsaa_pverb',
             'vmin'      : 0,
             'vmax'      : 100,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.1f}',
+            'fmt'       : '{:.5f}',
             })
                 
     elif variable == 'precipitation_amount_accumulation':
@@ -632,7 +670,7 @@ def get_variable_opts(variable):
             'vmin'      : 0,
             'vmax'      : 100,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.1f}',
+            'fmt'       : '{:.2f}',
             })
         
     elif variable == 'convective_rainfall_amount_accumulation':
@@ -650,7 +688,42 @@ def get_variable_opts(variable):
             'vmin'      : 0,
             'vmax'      : 100,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.1f}',
+            'fmt'       : '{:.2f}',
+            })
+        
+    elif variable == 'convective_rainfall_amount':
+        opts.update({
+            'constraint': iris.Constraint(
+                name='m01s05i201', 
+                cube_func=lambda cube: iris.coords.CellMethod(
+                    method='mean', coords='time', intervals='1 hour'
+                    ) in cube.cell_methods),
+            'plot_title': 'convective rainfall amount',
+            'plot_fname': 'convective_rainfall_amount',
+            'units'     : 'kg m-2',
+            'obs_key'   : 'precip_last_aws_obs',
+            'fname'     : 'umnsaa_pverb',
+            'vmin'      : 0,
+            'vmax'      : 100,
+            'cmap'      : 'gist_earth_r',
+            'fmt'       : '{:.2f}',
+            })
+        
+    elif variable == 'convective_rainfall_flux':
+        opts.update({
+            'constraint': iris.Constraint(
+                name='m01s05i205', 
+                cube_func=lambda cube: iris.coords.CellMethod(
+                    method='mean', coords='time', intervals='1 hour'
+                    ) in cube.cell_methods),
+            'plot_title': 'convective rainfall flux',
+            'plot_fname': 'convective_rainfall_flux',
+            'units'     : 'kg m-2',
+            'fname'     : 'umnsaa_pverb',
+            'vmin'      : 0,
+            'vmax'      : 100,
+            'cmap'      : 'gist_earth_r',
+            'fmt'       : '{:.5f}',
             })
         
     elif variable == 'stratiform_rainfall_amount':
@@ -666,7 +739,7 @@ def get_variable_opts(variable):
             'vmin'      : 0,
             'vmax'      : 100,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.1f}',
+            'fmt'       : '{:.2f}',
             })
 
     elif variable == 'stratiform_rainfall_flux':
@@ -682,7 +755,7 @@ def get_variable_opts(variable):
             'vmin'      : 0,
             'vmax'      : 100,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.1f}',
+            'fmt'       : '{:.5f}',
             })
         
     elif variable == 'daily_precipitation_amount':
@@ -700,7 +773,7 @@ def get_variable_opts(variable):
             'vmin'      : 0,
             'vmax'      : 100,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.1f}',
+            'fmt'       : '{:.2f}',
             })
     
     elif variable == 'stratiform_rainfall_amount_10min':
@@ -718,7 +791,7 @@ def get_variable_opts(variable):
             'vmin'      : 0,
             'vmax'      : 200,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.1f}',
+            'fmt'       : '{:.2f}',
             })
 
     elif variable == 'stratiform_rainfall_flux_mean':
@@ -736,7 +809,7 @@ def get_variable_opts(variable):
             'vmin'      : 0,
             'vmax'      : 32,
             'cmap'      : 'gist_earth_r',
-            'fmt'       : '{:.5f}',
+            'fmt'       : '{:.6f}',
             })
 
 
