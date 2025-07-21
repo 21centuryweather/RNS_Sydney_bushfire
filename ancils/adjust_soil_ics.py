@@ -3,27 +3,28 @@ Requires hh5, i.e.:
     module use /g/data/hh5/public/modules;module load conda/analysis3
 as xp65 does not have ants
 '''
+
 import argparse
 
-parser = argparse.ArgumentParser(description='adjusts soil albedo within a polygon to reduce albedo by a specified percentage')
-parser.add_argument('--fpath', help='fpath to albedo file',default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/qrparm.soil_cci')
+parser = argparse.ArgumentParser(description='adjusts initial condition soil moisture prior to recon to fix the "wet soil near cities" problem')
+parser.add_argument('--fpath', help='fpath to startdump',default='/scratch/fy29/mjl561/cylc-run/u-dr216/share/cycle/20200114T0000Z/Bluemountains/d11000/GAL9/ics/GAL9_astart')
 parser.add_argument('--polygon', help='path to polygon gpkg file to use for masking, if not provided will use example polygon', default=None)
-parser.add_argument('--update', help='whether to create updated file and replace original with symlink', default=False, action='store_true')
-parser.add_argument('--plot', help='whether to plot result', default=False, action='store_true')
+parser.add_argument('--update', help='whether to create updated ics file and replace original with symlink', default=False, action='store_true')
+parser.add_argument('--plot', help='whether to plot result to ics dir', default=False, action='store_true')
 args = parser.parse_args()
 
 import ants
 import geopandas as gpd
 import numpy as np
-import os
 from shapely.geometry import Point, Polygon
-import matplotlib.pyplot as plt
 import mule
 
 ###############################################################################
 
 # Main inputs
 polygon_fle = None
+# ancil_path = '/scratch/fy29/mjl561/cylc-run/u-dr216/share/cycle/20200114T0000Z/Bluemountains/d11000/GAL9/ics'
+# ancil_fname = 'GAL9_astart'
 
 original_path = args.fpath
 
@@ -31,16 +32,13 @@ original_path = args.fpath
 args.plot = True
 args.update = True
 
-albedo_reduction_factor = 0.5  # 50% reduction
-
-###############################################################################
 
 def main(original_path):
 
     print(f'processing {original_path}')
 
-    # Load albedo data
-    cb = ants.load_cube(original_path, constraint='soil_albedo')
+    # get soil moisture data
+    cb = ants.load_cube(original_path, constraint='moisture_content_of_soil_layer')
 
     # Create or load polygon
     if args.polygon is None:
@@ -52,28 +50,28 @@ def main(original_path):
     if args.update:
         print('updating files')
 
-        # make changes to albedo file with mule
+        # make changes to ics file with mule
         updated_fpath = original_path+'_updated'
-        stashid = 220   # for soil albedo stash m01s00i220
+        stashid = 9  # for moisture content of soil layer stash m01s00i009
 
         cb_adjusted = cb.copy()
         mask = create_mask_from_polygon(cb, polygon)
-        
-        # Reduce albedo by the specified factor within the polygon
-        cb_adjusted.data[mask] *= (1 - albedo_reduction_factor)
-        
-        print(f"Original albedo range within mask: {cb.data[mask].min():.3f} to {cb.data[mask].max():.3f}")
-        print(f"Adjusted albedo range: {cb_adjusted.data[mask].min():.3f} to {cb_adjusted.data[mask].max():.3f}")
-        print(f"Number of grid cells modified: {np.sum(mask)}")
+        # Broadcast mask to match the shape of cb_adjusted.data
+        mask_broadcast = np.broadcast_to(mask, cb_adjusted.data.shape)
+        cb_adjusted.data[mask_broadcast] *= 0.5  # reduce soil moisture by 50%
 
         save_adjusted_cube(cb_adjusted, updated_fpath, original_path, stashid)
 
     if args.plot and args.update:
         print('plotting changes')
-        # Get output directory for plots
-        output_path = os.path.dirname(original_path)
-        
-        plot_albedo_comparison(cb, cb_adjusted, mask, albedo_reduction_factor, output_path)
+        # Get bounds for plotting
+        lons = cb.coord('longitude').points
+        lats = cb.coord('latitude').points
+        xmin, xmax = lons.min(), lons.max()
+        ymin, ymax = lats.min(), lats.max()
+        domain = 'GAL9'
+
+        plot_domains(cb, cb_adjusted, xmin, xmax, ymin, ymax, domain)
 
 def create_example_polygon(center_lon=150.49, center_lat=-33.5, size=1.0):
     """Create an example rectangular polygon."""
@@ -107,7 +105,7 @@ def save_adjusted_cube(cb_adjusted, output_path, original_path, stashid):
     """Save the adjusted cube using ANTS or MULE as fallback."""
     try:
         ants.save(cb_adjusted, output_path+'.nc')
-        print(f"Adjusted albedo saved to {output_path} using ANTS.")
+        print(f"Adjusted soil moisture saved to {output_path} using ANTS.")
     except Exception as e:
         print(f"\nWARNING: Error saving adjusted cube with ANTS. Reason: {e}\n")
     
@@ -115,51 +113,58 @@ def save_adjusted_cube(cb_adjusted, output_path, original_path, stashid):
     ancil = mule.AncilFile.from_file(original_path)
     arr = cb_adjusted.data.data
     
+    j = 0
     for i, field in enumerate(ancil.fields):
         if field.lbuser4 == stashid:
             print(f'updating field {i}: {field.lbuser4}')
-            array_provider = mule.ArrayDataProvider(arr)
+            array_provider = mule.ArrayDataProvider(arr[j, :, :])
             ancil.fields[i].set_data_provider(array_provider)
+            j += 1
     
     # Save using mule
-    print(f'saving updated ancil to {output_path} with mule')
+    print(f'saving updated ancil to {updated_fpath} with mule')
     try:
-        ancil.to_file(output_path)
+        ancil.to_file(updated_fpath)
     except Exception as e:
         print(e)
         print('WARNING: MULE validation being disabled')
         ancil.validate = lambda *args, **kwargs: True
-        ancil.to_file(output_path)
+        ancil.to_file(updated_fpath)
 
-def plot_albedo_comparison(cb, cb_adjusted, mask, reduction_factor, output_path):
-    """Plot comparison of original vs adjusted albedo and save figure."""
-    
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
+def plot_domains(cb,cb_updated,xmin,xmax,ymin,ymax,domain,cmap='RdYlBu'):
 
-    # Original albedo
-    im1 = ax1.imshow(cb.data, origin='lower', cmap='Greys_r', vmin=0, vmax=0.5)
-    ax1.set_title('Original Albedo')
-    plt.colorbar(im1, ax=ax1)
+    import matplotlib.pyplot as plt
+    import xarray as xr # for easier plotting
+    import os
 
-    # Adjusted albedo
-    im2 = ax2.imshow(cb_adjusted.data, origin='lower', cmap='Greys_r', vmin=0, vmax=0.5)
-    ax2.set_title(f'Adjusted Albedo (-{reduction_factor*100}% in polygon)')
-    plt.colorbar(im2, ax=ax2)
+    plotpath = f'{os.path.dirname(args.fpath)}'
 
-    # Difference (should show the polygon area)
-    diff = cb_adjusted.data - cb.data
-    im3 = ax3.imshow(diff, origin='lower', cmap='Blues_r')
-    ax3.set_title('Difference (Adjusted - Original)')
-    plt.colorbar(im3, ax=ax3)
+    # rename soil_model_level_number coord to depth where necessary
+    if 'soil_model_level_number' in [coord.name() for coord in cb.coords()]:
+        print('updating coord names to depth')
+        cb.coord('soil_model_level_number').rename('depth')
 
-    plt.tight_layout()
-    
-    # Save figure
-    plt.savefig(f'{output_path}/adjusted_albedo.png', bbox_inches='tight')
+    for i,depth in enumerate(cb.coord('depth')):
+        depth = depth.points[0]
+
+        print(f'plotting soil moisture')
+        plt.close('all')
+        ds = xr.DataArray().from_iris(cb).sel(depth=depth,latitude=slice(ymin,ymax),longitude=slice(xmin,xmax))
+        vmax = float(ds.max())*0.95
+        ds.plot(cmap=cmap,vmin=0,vmax=vmax)
+        plt.savefig(f'{plotpath}/{domain}_sm_original_{i}.png', dpi=200)
+
+        plt.close('all')
+        ds = xr.DataArray().from_iris(cb_updated).sel(depth=depth,latitude=slice(ymin,ymax),longitude=slice(xmin,xmax))
+        ds.plot(cmap=cmap,vmin=0,vmax=vmax)
+        plt.savefig(f'{plotpath}/{domain}_sm_updated_{i}.png', dpi=200)
+
+        break # just plot uppermost layer for now
+
+    return
 
 
 if __name__ == '__main__':
     print('functions loaded')
 
     main(args.fpath)
-
