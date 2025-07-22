@@ -20,12 +20,6 @@ import xarray as xr
 
 ###############################################################################
 
-
-# temporary
-original_path = args.fpath
-args.plot = True
-args.update = True
-
 albedo_reduction_factor = 0.5  # 50% reduction
 
 ###############################################################################

@@ -19,10 +19,10 @@ import mule
 
 ###############################################################################
 
-# temporary
-original_path = args.fpath
-args.plot = True
-args.update = True
+soil_fraction=0.8                   # 80% soil in fire areas
+shrub_fraction= 1. - soil_fraction 
+
+###############################################################################
 
 pseudo_map = {
     'broad_leaf': 1, 
@@ -65,7 +65,7 @@ def main(original_path):
     stashid = 216  # for fraction of surface types stash m01s00i216
 
     cb_adjusted = cb.copy()
-    cb_adjusted = adjust_land_cover(cb_adjusted, mask, soil_fraction=0.8, shrub_fraction=0.2)
+    cb_adjusted = adjust_land_cover(cb_adjusted, mask, soil_fraction, shrub_fraction)
 
     save_adjusted_cube(cb_adjusted, updated_fpath, original_path, stashid)
 

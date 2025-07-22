@@ -20,10 +20,9 @@ import os
 
 ###############################################################################
 
-# temporary
-original_path = args.fpath
-args.plot = True
-args.update = True
+sm_reduction_factor = 0.5  # 50% reduction
+
+###############################################################################
 
 def main(original_path):
 
@@ -52,7 +51,7 @@ def main(original_path):
     cb_adjusted = cb.copy()
     # Broadcast mask to match the shape of cb_adjusted.data
     mask_broadcast = np.broadcast_to(mask, cb_adjusted.data.shape)
-    cb_adjusted.data[mask_broadcast] *= 0.5  # reduce soil moisture by 50%
+    cb_adjusted.data[mask_broadcast] *= sm_reduction_factor
 
     save_adjusted_cube(cb_adjusted, updated_fpath, original_path, stashid)
 
