@@ -7,26 +7,20 @@ import argparse
 
 parser = argparse.ArgumentParser(description='adjusts land cover fractions within a polygon to set desired soil and shrub percentages')
 parser.add_argument('--fpath', help='fpath to land cover file',default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/qrparm.veg.frac.urb2t')
-parser.add_argument('--polygon', help='path to polygon gpkg file to use for masking, if not provided will use example polygon', default=None)
-parser.add_argument('--update', help='whether to create updated file and replace original with symlink', default=False, action='store_true')
+parser.add_argument('--mask_file', help='path to fire mask NetCDF file', default='/scratch/public/as9583/fire_mask.nc')
 parser.add_argument('--plot', help='whether to plot result', default=False, action='store_true')
 args = parser.parse_args()
 
 import os
 import ants
-import geopandas as gpd
 import numpy as np
-from shapely.geometry import Point, Polygon
+import xarray as xr
 import mule
 
 ###############################################################################
 
-# Main inputs
-polygon_fle = None
-
-original_path = args.fpath
-
 # temporary
+original_path = args.fpath
 args.plot = True
 args.update = True
 
@@ -53,27 +47,29 @@ def main(original_path):
     # Load land cover data
     cb = ants.load_cube(original_path)
 
-    # Create or load polygon
-    if args.polygon is None:
-        polygon = create_example_polygon()
+    # Load pre-created fire mask
+    if os.path.exists(args.mask_file):
+        print(f"Loading fire mask from: {args.mask_file}")
+        mask_da = xr.open_dataarray(args.mask_file)
+        mask = mask_da.values.astype(bool)
+        print(f"Loaded mask with {np.sum(mask)} fire-affected grid cells")
     else:
-        gdf = gpd.read_file(args.polygon)
-        polygon = gdf.geometry.iloc[0]  # assuming single polygon
+        print(f"ERROR: Fire mask file not found: {args.mask_file}")
+        print("Please run create_fire_mask.py first to generate the mask file")
+        return
 
-    if args.update:
-        print('updating files')
+    print('updating files')
 
-        # make changes to land cover file with mule
-        updated_fpath = original_path+'_updated'
-        stashid = 216  # for fraction of surface types stash m01s00i216
+    # make changes to land cover file with mule
+    updated_fpath = original_path+'_updated'
+    stashid = 216  # for fraction of surface types stash m01s00i216
 
-        cb_adjusted = cb.copy()
-        mask = create_mask_from_polygon(cb, polygon)
-        cb_adjusted = adjust_land_cover(cb_adjusted, mask, soil_fraction=0.8, shrub_fraction=0.2)
+    cb_adjusted = cb.copy()
+    cb_adjusted = adjust_land_cover(cb_adjusted, mask, soil_fraction=0.8, shrub_fraction=0.2)
 
-        save_adjusted_cube(cb_adjusted, updated_fpath, original_path, stashid)
+    save_adjusted_cube(cb_adjusted, updated_fpath, original_path, stashid)
 
-    if args.plot and args.update:
+    if args.plot:
         print('plotting changes')
         # Get output directory for plots
         output_path = os.path.dirname(original_path)
@@ -81,34 +77,6 @@ def main(original_path):
         plot_land_cover(cb_adjusted, output_path)
 
     return
-
-def create_example_polygon(center_lon=150.49, center_lat=-33.5, size=1.0):
-    """Create an example rectangular polygon."""
-    half_size = size / 2
-    polygon_coords = [
-        (center_lon - half_size, center_lat - half_size),  # bottom-left
-        (center_lon + half_size, center_lat - half_size),  # bottom-right
-        (center_lon + half_size, center_lat + half_size),  # top-right
-        (center_lon - half_size, center_lat + half_size),  # top-left
-        (center_lon - half_size, center_lat - half_size)   # close the polygon
-    ]
-    polygon = Polygon(polygon_coords)
-    print(f"Created example polygon centered at ({center_lon:.3f}, {center_lat:.3f})")
-    return polygon
-
-def create_mask_from_polygon(cb, polygon):
-    """Create a boolean mask from polygon for the cube grid."""
-    lons = cb.coord('longitude').points
-    lats = cb.coord('latitude').points
-    lon_2d, lat_2d = np.meshgrid(lons, lats)
-    
-    mask = np.zeros_like(lon_2d, dtype=bool)
-    for i in range(lon_2d.shape[0]):
-        for j in range(lon_2d.shape[1]):
-            point = Point(lon_2d[i, j], lat_2d[i, j])
-            mask[i, j] = polygon.contains(point)
-    
-    return mask
 
 def adjust_land_cover(cb_adjusted, mask, soil_fraction=0.8, shrub_fraction=0.2):
     """Adjust land cover fractions within the mask."""
@@ -131,12 +99,7 @@ def adjust_land_cover(cb_adjusted, mask, soil_fraction=0.8, shrub_fraction=0.2):
     return cb_adjusted
 
 def save_adjusted_cube(cb_adjusted, output_path, original_path, stashid):
-    """Save the adjusted cube using ANTS or MULE as fallback."""
-    try:
-        ants.save(cb_adjusted, output_path+'.nc')
-        print(f"Adjusted land cover saved to {output_path} using ANTS.")
-    except Exception as e:
-        print(f"\nWARNING: Error saving adjusted cube with ANTS. Reason: {e}\n")
+    """Save the adjusted cube using MULE"""
     
     # Convert iris cube to mule UMfile
     ancil = mule.AncilFile.from_file(original_path)
@@ -178,7 +141,6 @@ def plot_land_cover(cb_adjusted, output_path):
     
     # Save figure
     plt.savefig(f'{output_path}/adjusted_land_cover.png', bbox_inches='tight')
-
 
 if __name__ == '__main__':
     print('functions loaded')
