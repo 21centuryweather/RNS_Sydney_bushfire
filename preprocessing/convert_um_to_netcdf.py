@@ -70,6 +70,7 @@ variables = ['convective_rainfall_flux']
 variables = ['stratiform_rainfall_flux']
 variables = ['surface_altitude']
 variables = ['soil_moisture_l2']
+variables = ['air_temperature']
 
 ###############################################################################
 
@@ -169,7 +170,23 @@ if __name__ == "__main__":
         first_cycle_path =  f'{cycle_path}/{cycle_list[0]}/{region}'
 
         # Dynamically discover experiment directories from first cycle
-        exp_dirs = sorted([d for d in os.listdir(first_cycle_path) if os.path.isdir(os.path.join(first_cycle_path, d))])
+        # Include only second-level subdirectories (concatenated with parent using slash)
+        exp_dirs = []
+        
+        # First level directories
+        for d in sorted(os.listdir(first_cycle_path)):
+            d_path = os.path.join(first_cycle_path, d)
+            if os.path.isdir(d_path):
+                # Second level subdirectories (concatenated with parent)
+                try:
+                    for subdir in sorted(os.listdir(d_path)):
+                        subdir_path = os.path.join(d_path, subdir)
+                        if os.path.isdir(subdir_path):
+                            exp_dirs.append(f"{d}_{subdir}")
+                except (PermissionError, OSError):
+                    # Skip if we can't read the directory
+                    pass
+        
         print(f'Found experiment directories: {exp_dirs}')
 
         for exp in exp_dirs:
@@ -184,8 +201,8 @@ if __name__ == "__main__":
                 print('========================')
                 print(f'getting {exp} {i}: {cycle}\n')
 
-                # Dynamically find the experiment path by searching subdirectories
-                exp_base_path = f'{cycle_path}/{cycle}/{region}/{exp}'
+                # Dynamically find the experiment path by replacing only the first underscore with a slash
+                exp_base_path = f'{cycle_path}/{cycle}/{region}/{exp.replace("_", "/", 1)}'
                 
                 # Find the um directory by searching through subdirectories
                 exp_path = None
@@ -199,13 +216,11 @@ if __name__ == "__main__":
                 # check if experiment path exists, if not skip this cycle
                 if exp_path is None or not os.path.exists(exp_path):
                     print(f'path {exp_path} does not exist')
-                    cycle_list.remove(cycle)
                     continue
 
                 # check if any of the variables files are in the directory
                 if len(glob.glob(f"{exp_path}/{opts['fname']}*")) == 0:
                     print(f'no files in {exp_path}')
-                    cycle_list.remove(cycle)
                     continue
 
                 da = get_um_data(exp, exp_path, opts)
@@ -256,7 +271,8 @@ if __name__ == "__main__":
             ds.latitude.encoding.update({'dtype':'float32', '_FillValue': -999})
             ds.encoding.update({'zlib':'true', 'shuffle': True, 'dtype':opts['dtype'], '_FillValue': -999})
 
-            fname = f'{datapath}/{opts["plot_fname"]}/{exp}_{opts["plot_fname"]}.nc'
+            fname = f'{datapath}/{opts["plot_fname"]}/{region}_{exp}_{opts["plot_fname"]}.nc'
+            
             print(f'saving to netcdf: {fname}')
             ds.to_netcdf(fname, unlimited_dims='time')
 
