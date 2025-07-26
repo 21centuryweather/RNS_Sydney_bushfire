@@ -32,10 +32,15 @@ tic = time.perf_counter()
 
 ######## set up ########
 
-cylc_id = 'u-dr216'
-region = 'Bluemountains'
 project = 'fy29'
 user = 'mjl561'
+
+########################
+
+# define the suite and regions
+cylc_id = 'u-dr216'
+regions = ['control', 'drysoil']
+save_to_netcdf = True # whether to save netcdf files
 
 ########################
 
@@ -58,10 +63,6 @@ variables_todo = [
     'surface_net_longwave_flux', 'surface_net_shortwave_flux','ground_heat_flux', 'surface_altitude'
     ]
 
-variables_done = ['land_sea_mask','stratiform_rainfall_amount','stratiform_rainfall_flux',
-             'air_temperature','wind_u','wind_v','wind_speed_of_gust','specific_humidity',
-             'specific_humidity','soil_moisture_l1','surface_runoff_flux','surface_altitude']
-
 variables = ['stratiform_rainfall_amount','stratiform_rainfall_flux']
 variables = ['land_sea_mask']
 variables = ['stratiform_rainfall_amount']
@@ -71,6 +72,7 @@ variables = ['stratiform_rainfall_flux']
 variables = ['surface_altitude']
 variables = ['soil_moisture_l2']
 variables = ['air_temperature']
+variables = ['wind_speed_of_gust']
 
 ###############################################################################
 
@@ -86,7 +88,7 @@ def get_um_data(exp, exp_path, opts):
         if cb.coord('time').bounds is not None:
             print('WARNING: updating time point to right bound')
             cb.coord('time').points = cb.coord('time').bounds[:,1]
-        da = xr.DataArray().from_iris(cb)
+        da = xr.DataArray.from_iris(cb)
     except Exception as e:
         print(f'trouble opening {fpath}')
         print(e)
@@ -118,13 +120,13 @@ def get_um_data(exp, exp_path, opts):
     if opts['constraint'] in ['moisture_content_of_soil_layer']:
         da = da.isel(depth=opts['level'])
         
-    # Convert soil moisture from kg m-2 to volumetric water content (m3 m-3)
-    if variable.startswith('soil_moisture_l'):
-        print('WARNING: converting soil moisture from kg m-2 to volumetric water content (m3 m-3)')
-        layer_thickness = float(da.depth.values)  # m (soil layer thickness)
-        water_density = 1000.0  # kg m-3
-        da = da / (layer_thickness * water_density)
-        da.attrs['units'] = 'm3 m-3'
+    # # Convert soil moisture from kg m-2 to volumetric water content (m3 m-3)
+    # if variable.startswith('soil_moisture_l'):
+    #     print('WARNING: converting soil moisture from kg m-2 to volumetric water content (m3 m-3)')
+    #     layer_thickness = float(da.depth.values)  # m (soil layer thickness)
+    #     water_density = 1000.0  # kg m-3
+    #     da = da / (layer_thickness * water_density)
+    #     da.attrs['units'] = 'm3 m-3'
 
     return da
 
@@ -163,46 +165,48 @@ if __name__ == "__main__":
         print(f'processing {variable}')
 
         opts = cf.get_variable_opts(variable)
-
+        ds_all = xr.Dataset()
+        
+        # Get cycle list first
         cycle_list = sorted([x.split('/')[-2] for x in glob.glob(f'{cycle_path}/*/')])
         assert len(cycle_list) > 0, f"no cycles found in {cycle_path}"
-
-        first_cycle_path =  f'{cycle_path}/{cycle_list[0]}/{region}'
-
-        # Dynamically discover experiment directories from first cycle
-        # Include only second-level subdirectories (concatenated with parent using slash)
-        exp_dirs = []
         
-        # First level directories
-        for d in sorted(os.listdir(first_cycle_path)):
-            d_path = os.path.join(first_cycle_path, d)
-            if os.path.isdir(d_path):
-                # Second level subdirectories (concatenated with parent)
-                try:
-                    for subdir in sorted(os.listdir(d_path)):
-                        subdir_path = os.path.join(d_path, subdir)
-                        if os.path.isdir(subdir_path):
-                            exp_dirs.append(f"{d}_{subdir}")
-                except (PermissionError, OSError):
-                    # Skip if we can't read the directory
-                    pass
+        # Build complete experiment list for all regions
+        exps = []
+        exps_dirs = []
+        for region in regions:
+            first_cycle_path =  f'{cycle_path}/{cycle_list[0]}/{region}'
+
+            # Dynamically discover experiment directories from first cycle
+            # Include only second-level subdirectories (concatenated with parent using slash)
+            for d in sorted(os.listdir(first_cycle_path)):
+                d_path = os.path.join(first_cycle_path, d)
+                if os.path.isdir(d_path):
+                    # Second level subdirectories (concatenated with parent)
+                    try:
+                        for subdir in sorted(os.listdir(d_path)):
+                            subdir_path = os.path.join(d_path, subdir)
+                            if os.path.isdir(subdir_path):
+                                exps.append(f"{region}_{d}_{subdir}")
+                                exps_dirs.append(f"{region}/{d}/{subdir}")
+                    except (PermissionError, OSError):
+                        # Skip if we can't read the directory
+                        pass
         
-        print(f'Found experiment directories: {exp_dirs}')
+        print(f'Found experiment directories: {exps}')
 
-        for exp in exp_dirs:
-            out_dir = f'{datapath}/{opts["plot_fname"]}'
+        for exp, exp_dir in zip(exps, exps_dirs):
 
-            # make directory if it doesn't exist
-            if not os.path.exists(f'{datapath}/{opts["plot_fname"]}'):
-                os.makedirs(f'{datapath}/{opts["plot_fname"]}')
+            # Extract region from experiment name
+            region = exp.split('_')[0]
 
             da_list = []
             for i,cycle in enumerate(cycle_list):
                 print('========================')
                 print(f'getting {exp} {i}: {cycle}\n')
 
-                # Dynamically find the experiment path by replacing only the first underscore with a slash
-                exp_base_path = f'{cycle_path}/{cycle}/{region}/{exp.replace("_", "/", 1)}'
+                # experiment path
+                exp_base_path = f'{cycle_path}/{cycle}/{exp_dir}'
                 
                 # Find the um directory by searching through subdirectories
                 exp_path = None
@@ -271,11 +275,80 @@ if __name__ == "__main__":
             ds.latitude.encoding.update({'dtype':'float32', '_FillValue': -999})
             ds.encoding.update({'zlib':'true', 'shuffle': True, 'dtype':opts['dtype'], '_FillValue': -999})
 
-            fname = f'{datapath}/{opts["plot_fname"]}/{region}_{exp}_{opts["plot_fname"]}.nc'
-            
-            print(f'saving to netcdf: {fname}')
-            ds.to_netcdf(fname, unlimited_dims='time')
+            if save_to_netcdf:
+                fname = f'{datapath}/{opts["plot_fname"]}/{exp}_{opts["plot_fname"]}.nc'
+                out_dir = os.path.dirname(fname)
+                # make directory if it doesn't exist
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+                print(f'saving to netcdf: {fname}')
+                ds.to_netcdf(fname, unlimited_dims='time')
+
+            if 'd0198' in exp:
+                print(f'adding {exp} to ds_all')
+                ds_all[exp] = ds
+
+            del(ds, da, da_list)
 
     toc = time.perf_counter() - tic
 
     print(f"Timer {toc:0.4f} seconds")
+
+    # # Plot comparison of all experiments
+    # import matplotlib.pyplot as plt
+
+    # # a plot that compares all items in ds_all with the control run
+
+    # if 'ds_all' in locals() and len(ds_all.data_vars) > 0:
+    #     print('ds_all is not empty, plotting comparison')
+
+    #     # Get list of experiments
+    #     exp_list = list(ds_all.data_vars)
+    #     control_exp = 'control_d0198_RAL3P2'
+        
+    #     # Check if control experiment exists
+    #     if control_exp not in exp_list:
+    #         print(f"Warning: {control_exp} not found in ds_all. Available experiments: {exp_list}")
+    #         control_exp = exp_list[0]  # Use first experiment as reference
+            
+    #     print(f"Using {control_exp} as control/reference")
+
+    #     # Number of experiments
+    #     n_exps = len(exp_list)
+    #     ncols = min(3, n_exps)  # Max 3 columns
+    #     nrows = int(np.ceil(n_exps / ncols))
+
+    #     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6 * ncols, 5 * nrows))
+    #     if n_exps == 1:
+    #         axes = [axes]  # Make it iterable for single subplot
+    #     else:
+    #         axes = axes.flatten()
+
+    #     for i, exp_name in enumerate(exp_list):
+    #         ax = axes[i]
+            
+    #         if exp_name == control_exp:
+    #             # Plot control experiment
+    #             if 'time' in ds_all[exp_name].dims:
+    #                 ds_all[exp_name].mean(dim='time').plot(ax=ax, cmap=opts.get('cmap', 'viridis'))
+    #             else:
+    #                 ds_all[exp_name].plot(ax=ax, cmap=opts.get('cmap', 'viridis'))
+    #             ax.set_title(f'{exp_name} (Control)')
+    #         else:
+    #             # Plot difference from control
+    #             if 'time' in ds_all[exp_name].dims:
+    #                 diff = (ds_all[exp_name]- ds_all[control_exp]).mean(dim='time')
+    #             else:
+    #                 diff = ds_all[exp_name] - ds_all[control_exp]
+    #             diff.plot(ax=ax, cmap='RdBu_r', center=0, vmin=-2.5, vmax=2.5)
+    #             ax.set_title(f'{exp_name} - {control_exp}')
+
+    #     # Hide unused axes if any
+    #     for j in range(n_exps, len(axes)):
+    #         fig.delaxes(axes[j])
+
+    #     plt.tight_layout()
+    #     plt.show()
+
+
+    # ds_all.mean(dim='time')

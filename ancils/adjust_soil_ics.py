@@ -1,14 +1,26 @@
+#!/usr/bin/env python
+
 '''
-Requires hh5, i.e.: 
-    module use /g/data/hh5/public/modules;module load conda/analysis3
-as xp65 does not have ants
+IMPORTANT: The master version of this file is in the u-dr216 MOSRS repository.
+The version in the github repository is simply a copy. If any changes are requred,
+ensure both versions are kept aligned.
+
+MOSRS:  https://code.metoffice.gov.uk/trac/roses-u/browser/d/r/2/1/6/trunk
+Github: https://github.com/21centuryweather/RNS_Sydney_bushfire
+
+Usage:
+The u-dr216 suite currently calls this script with the following command:
+    script = "$CYLC_SUITE_RUN_DIR/bin/adjust_soil_ics.py --fpath {{mod['ics']['file']}} --mask_file {{resln['ancil_dir']}}/fire_mask.nc"
+
+Which after processing is:
+    python u-dr216/bin/adjust_soil_ics.py --fpath /path/to/RAL3P2_astart --mask_file /path/to/ancils/fire_mask.nc
 '''
 
 import argparse
 
-parser = argparse.ArgumentParser(description='adjusts initial condition soil moisture prior to recon to fix the "wet soil near cities" problem')
-parser.add_argument('--fpath', help='fpath to startdump',default='/scratch/fy29/mjl561/cylc-run/u-dr216/share/cycle/20200114T0000Z/Bluemountains/d11000/GAL9/ics/GAL9_astart')
-parser.add_argument('--mask_file', help='path to fire mask NetCDF file', default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d11000/fire_mask.nc')
+parser = argparse.ArgumentParser(description='adjusts initial condition soil moisture prior to inner nest recon')
+parser.add_argument('--fpath', help='fpath to startdump',default='/scratch/fy29/mjl561/cylc-run/u-dr216/share/cycle/20200114T0000Z/control/d0198/RAL3P2/ics/RAL3P2_astart')
+parser.add_argument('--mask_file', help='path to fire mask NetCDF file', default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/fire_mask.nc')
 parser.add_argument('--plot', help='whether to plot result to ics dir', default=False, action='store_true')
 args = parser.parse_args()
 
@@ -17,6 +29,7 @@ import numpy as np
 import mule
 import xarray as xr
 import os
+import shutil
 
 ###############################################################################
 
@@ -45,7 +58,7 @@ def main(original_path):
     print('updating files')
 
     # make changes to ics file with mule
-    updated_fpath = original_path+'_updated'
+    backup_fpath = original_path+'_original'
     stashid = 9  # for moisture content of soil layer stash m01s00i009
 
     cb_adjusted = cb.copy()
@@ -53,7 +66,13 @@ def main(original_path):
     mask_broadcast = np.broadcast_to(mask, cb_adjusted.data.shape)
     cb_adjusted.data[mask_broadcast] *= sm_reduction_factor
 
-    save_adjusted_cube(cb_adjusted, updated_fpath, original_path, stashid)
+    # Create backup of original file
+    print(f'Creating backup: {backup_fpath}')
+    shutil.copy2(original_path, backup_fpath)
+    
+    # Save adjusted data to original file path (overwriting original)
+    # Use backup file as template to preserve all other fields
+    save_adjusted_cube(cb_adjusted, original_path, backup_fpath, stashid)
 
     if args.plot:
         print('plotting changes')
@@ -62,18 +81,26 @@ def main(original_path):
         lats = cb.coord('latitude').points
         xmin, xmax = lons.min(), lons.max()
         ymin, ymax = lats.min(), lats.max()
-        domain = 'GAL9'
+        # get filename from args.fname
+        domain = os.path.basename(original_path).split('_astart')[0]
 
         # Create comprehensive comparison plot
         plot_soil_moisture_comparison(cb, cb_adjusted, xmin, xmax, ymin, ymax, domain)
 
     return
 
-def save_adjusted_cube(cb_adjusted, output_path, original_path, stashid):
-    """Save the adjusted cube using MULE"""
+def save_adjusted_cube(cb_adjusted, output_path, template_path, stashid):
+    """Save the adjusted cube using MULE
     
-    # Convert iris cube to mule UMfile
-    ancil = mule.AncilFile.from_file(original_path)
+    Args:
+        cb_adjusted: The modified iris cube with adjusted soil moisture
+        output_path: Path where the updated file should be saved
+        template_path: Path to the original complete file to use as template
+        stashid: STASH code for the fields to update (9 for soil moisture)
+    """
+    
+    # Convert iris cube to mule UMfile using the template (original complete file)
+    ancil = mule.AncilFile.from_file(template_path)
     arr = cb_adjusted.data.data
     
     j = 0

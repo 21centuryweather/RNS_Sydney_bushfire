@@ -6,6 +6,15 @@ across multiple adjustment scripts (albedo, land cover, soil moisture).
 Requires hh5, i.e.: 
     module use /g/data/hh5/public/modules;module load conda/analysis3
 as xp65 does not have ants
+
+Example usage:
+    python create_fire_mask.py --fpath /path/to/template_file.nc --polygon /path/to/polygon.gpkg --output /path/to/output_mask.nc
+
+Arguments:
+    --fpath         Template file to get grid structure from (default provided)
+    --polygon       Path to polygon gpkg file containing fire boundaries (default provided)
+    --output        Output file for mask file (default provided)
+    --area_threshold Minimum polygon area in square degrees (default: 0.005)
 '''
 
 import argparse
@@ -20,12 +29,10 @@ from shapely.ops import unary_union
 parser = argparse.ArgumentParser(description='Create a fire mask NetCDF file from polygon data')
 parser.add_argument('--fpath', help='Template file to get grid structure from', 
                     default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/qrparm.soil_cci')
-                    # default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d11000/qrparm.soil_cci')
 parser.add_argument('--polygon', help='Path to polygon gpkg file containing fire boundaries', 
                     default='/scratch/public/as9583/total_fires.gpkg')
 parser.add_argument('--output', help='Output file for mask file', 
                     default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/fire_mask.nc')
-                    # default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d11000/fire_mask.nc')
 parser.add_argument('--area_threshold', type=float, help='Minimum polygon area in square degrees', 
                     default=0.005)
 

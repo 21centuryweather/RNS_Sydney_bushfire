@@ -2,10 +2,14 @@
 Requires hh5, i.e.: 
     module use /g/data/hh5/public/modules;module load conda/analysis3
 as xp65 does not have ants
+Example usage:
+    python adjust_land_cover.py --fpath /path/to/land_cover_file.nc --mask_file /path/to/fire_mask.nc --plot
+
+q
 '''
 import argparse
 
-parser = argparse.ArgumentParser(description='adjusts land cover fractions within a polygon to set desired soil and shrub percentages')
+parser = argparse.ArgumentParser(description='Adjust land cover fractions in a UM ancillary file using a fire mask, setting soil and shrub percentages within fire-affected areas.')
 parser.add_argument('--fpath', help='fpath to land cover file',default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/qrparm.veg.frac.urb2t')
 parser.add_argument('--mask_file', help='path to fire mask NetCDF file', default='/scratch/public/as9583/fire_mask.nc')
 parser.add_argument('--plot', help='whether to plot result', default=False, action='store_true')

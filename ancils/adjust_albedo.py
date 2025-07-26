@@ -2,10 +2,13 @@
 Requires hh5, i.e.: 
     module use /g/data/hh5/public/modules;module load conda/analysis3
 as xp65 does not have ants
+
+example usage:
+    python adjust_albedo.py --fpath /path/to/albedo_file.nc --mask_file /path/to/fire_mask.nc --plot
 '''
 import argparse
 
-parser = argparse.ArgumentParser(description='adjusts soil albedo within a polygon to reduce albedo by a specified percentage')
+parser = argparse.ArgumentParser(description='Reduces soil albedo by a specified factor within fire-affected areas defined by a mask file.')
 parser.add_argument('--fpath', help='fpath to albedo file',default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/qrparm.soil_cci')
 parser.add_argument('--mask_file', help='path to fire mask NetCDF file', default='/scratch/public/as9583/fire_mask.nc')
 parser.add_argument('--plot', help='whether to plot result', default=False, action='store_true')
