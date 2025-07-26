@@ -4,7 +4,7 @@ Impact of megafires on weather
 ## Contributions
 - Abby Smyth: experiment design, final model runs, all analysis
 - Ailie Gallant: experiment design, supervision
-- Mathew Lipson: ancillary generation, initial model runs
+- Mathew Lipson: ancil adjustment code, develop u-dr216 suite for 8 experiments, initial model runs
 
 ## Configuration
 
@@ -52,7 +52,7 @@ To run on Gadi:
 
 1. Clone this repository: `git clone git@github.com:21centuryweather/RNS_Sydney_bushfire.git`
 1. Get ancil suite: `rosie checkout u-dg767`
-2. Copy this [experiment ancils opt file](./ancils/rose-suite-rns_bluemountains.conf) to your `~roses/u-dg767/opt`
+2. Copy this [experiment ancils opt file](./ancils/rose-suite-rns_bluemountains.conf) to your `~/roses/u-dg767/opt`
 3. From u-dg767 folder, run suite with opt file: `rose suite-run -O rns_bluemountains --name=ancil_blue_mountains`
 4. When complete, create a netcdf of the fire mask with [ancils/create_fire_mask.py](./ancils/create_fire_mask.py) (update script as necessary)
 5. Update [albedo](./ancils/update_albedo.py) and [land cover](./ancils/update_land_cover.py) by running [ancils/run_adjust_ancils.sh](./ancils/run_adjust_ancils.sh) (update PBS details for your projects as necessary)
