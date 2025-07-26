@@ -16,16 +16,14 @@ Domain:
 - Outer: GAL9 at 0.11° (~12.2 km) (BARRA-R2 initialised)
 - Inner: RAL3p2 at 0.198° (~2.2km at equator)
 
+Experiments:
+8 sets (see below)
+
 ![Domains](./ancils/Bluemountains_domains_surface_altitude.png)
-
-## Ancillaries
-
-Use u-dg767 with [this optional file](./ancils/rose-suite-rns_bluemountains.conf).
-More info below. 
 
 ## Compute
 
-Major tasks:
+Major tasks for single experiment:
 
 |               | y_npts | x_npts | nproc | CPUS | SU/12hrs | walltime/12hrs  |
 |---------------|--------|--------|-------|------|----------|-----------------|
@@ -35,18 +33,22 @@ Major tasks:
 | d0198  fcst   | 450    | 450    | 24x24 | 576  | 230      | 12 min          |
 | d0198  recon  |        |        |       | 192  | 8        | 1 min           |
 
-### Total per day
+### Total per day per experiment
 
 - ~725 SU per day
 - ~30 min walltime per day
 
 ## Experiments
 
-Description of experiments
+Description of experiments:
 
 <img width="468" height="166" alt="image" src="https://github.com/user-attachments/assets/70c69e67-933a-4bd1-ba6c-e3146e6b6e76" />
 
-To run on Gadi:
+The simulation suite `u-dg216` has been updated so that any simulations (e.g. regions, resolutions, models) with "drysoil" in their name will have their soil initial conditions reduced by [u-dr216/bin/adjust_soil_ics.py](https://code.metoffice.gov.uk/trac/roses-u/browser/d/r/2/1/6/trunk/bin/adjust_soil_ics.py). 
+
+Any simulation with "albedo" in their name will be pointed to a pre-adjusted ancil by the optional file [u-dr216/app/um/opt/rose-app-burnt_albedo.conf](https://code.metoffice.gov.uk/trac/roses-u/browser/d/r/2/1/6/trunk/app/um/opt/rose-app-burnt_albedo.conf). Any simulation with "bare" in the name will be pointed to [u-dr216/app/um/opt/rose-app-burnt_bare.conf](https://code.metoffice.gov.uk/trac/roses-u/browser/d/r/2/1/6/trunk/app/um/opt/rose-app-burnt_bare.conf). These are pre-adjusted by python scripts in the ancils folder (see below for instructions). Simulations with both bare and albedo in their name will have both aspects updated.
+
+# To run on Gadi:
 
 ## Generate ancils
 
