@@ -21,7 +21,7 @@ Domain:
 ## Ancillaries
 
 Use u-dg767 with [this optional file](./ancils/rose-suite-rns_bluemountains.conf).
-More info here: https://github.com/21centuryweather/RNS_Sydney_bushfire/tree/main/ancils
+More info below. 
 
 ## Compute
 
@@ -55,7 +55,7 @@ To run on Gadi:
 2. Copy this [experiment ancils opt file](./ancils/rose-suite-rns_bluemountains.conf) to your `~/roses/u-dg767/opt`
 3. From u-dg767 folder, run suite with opt file: `rose suite-run -O rns_bluemountains --name=ancil_blue_mountains`
 4. When complete, create a netcdf of the fire mask with [ancils/create_fire_mask.py](./ancils/create_fire_mask.py) (update script as necessary)
-5. Update [albedo](./ancils/update_albedo.py) and [land cover](./ancils/update_land_cover.py) by running [ancils/run_adjust_ancils.sh](./ancils/run_adjust_ancils.sh) (update PBS details for your projects as necessary)
+5. Update [albedo](./ancils/adjust_albedo.py) and [land cover](./ancils/adjust_land_cover.py) by running [ancils/run_adjust_ancils.sh](./ancils/run_adjust_ancils.sh) (update PBS details for your projects as necessary)
 
 ## Run simulations
 
@@ -66,6 +66,4 @@ To run on Gadi:
 ## Process outputs
 1. Update [preprocessing/convert_um_to_netcdf.py](./preprocessing/convert_um_to_netcdf.py) for your project and user, and select which variables to save to netcdf
 2. Run directly in python, or use the PBS script [preprocessing/run_convert_um_to_netcdf.py](./preprocessing/run_convert_um_to_netcdf.py) after updating PBS flags for your project
-3. Netcdf outputs are in: `/g/data/{project}/{user}/cylc-run/u-dr216/netcdf
-
-
+3. Netcdf outputs are in: /g/data/{project}/{user}/cylc-run/u-dr216/netcdf
