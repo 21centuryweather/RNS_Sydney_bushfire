@@ -67,5 +67,5 @@ Any simulation with "albedo" in their name will be pointed to a pre-adjusted anc
 
 ## Process outputs
 1. Update [preprocessing/convert_um_to_netcdf.py](./preprocessing/convert_um_to_netcdf.py) for your project and user, and select which variables to save to netcdf
-2. Run directly in python, or use the PBS script [preprocessing/run_convert_um_to_netcdf.sh](./preprocessing/run_convert_um_to_netcdf.sh) after updating PBS flags for your project
+2. Run directly in python, or use the PBS script [preprocessing/run_convert_um_to_netcdf.sh](./preprocessing/run_convert_um_to_netcdf.sh) (`qsub run_convert_um_to_netcdf.sh`) after updating PBS flags for your project.
 3. Netcdf outputs are in: /g/data/{project}/{user}/cylc-run/u-dr216/netcdf
