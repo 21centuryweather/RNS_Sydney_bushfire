@@ -57,7 +57,7 @@ Any simulation with "albedo" in their name will be pointed to a pre-adjusted anc
 2. Copy this [experiment ancils opt file](./ancils/rose-suite-rns_bluemountains.conf) to your `~/roses/u-dg767/opt`
 3. From u-dg767 folder, run suite with opt file: `rose suite-run -O rns_bluemountains --name=ancil_blue_mountains`
 4. When complete, create a netcdf of the fire mask with [ancils/create_fire_mask.py](./ancils/create_fire_mask.py) (update script as necessary)
-5. Update [albedo](./ancils/adjust_albedo.py) and [land cover](./ancils/adjust_land_cover.py) by running [ancils/run_adjust_ancils.sh](./ancils/run_adjust_ancils.sh) (update PBS details for your projects as necessary)
+5. Update [albedo](./ancils/adjust_albedo.py) and [land cover](./ancils/adjust_land_cover.py) by running [ancils/run_adjust_ancils.sh](./ancils/run_adjust_ancils.sh) (update PBS details for your projects as necessary). Use `qsub run_adjust_ancils.sh` to submit to the PBS queue.
 
 ## Run simulations
 

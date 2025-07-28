@@ -28,11 +28,11 @@ from shapely.ops import unary_union
 
 parser = argparse.ArgumentParser(description='Create a fire mask NetCDF file from polygon data')
 parser.add_argument('--fpath', help='Template file to get grid structure from', 
-                    default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/qrparm.soil_cci')
+                    default='/scratch/ng72/as9583/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/qrparm.soil_cci')
 parser.add_argument('--polygon', help='Path to polygon gpkg file containing fire boundaries', 
                     default='/scratch/public/as9583/total_fires.gpkg')
 parser.add_argument('--output', help='Output file for mask file', 
-                    default='/scratch/fy29/mjl561/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/fire_mask.nc')
+                    default='/scratch/ng72/as9583/cylc-run/ancil_blue_mountains/share/data/ancils/Bluemountains/d0198/fire_mask.nc')
 parser.add_argument('--area_threshold', type=float, help='Minimum polygon area in square degrees', 
                     default=0.005)
 
