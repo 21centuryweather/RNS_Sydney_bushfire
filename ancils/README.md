@@ -1,4 +1,8 @@
+# Ancils
+
 This folder includes files necessary to create ancils
+
+## Initial ancil creation
 
 ### rose-suite-rns_bluemountains.conf
 
@@ -31,3 +35,37 @@ For different cylc-run dirs, or region names, update:
 cylc_dir = 'ancil_blue_mountains'
 region = 'Bluemountains'
 ```
+
+## Adjusting ancils prior to suite-run
+
+### create_fire_mask.py
+
+Creates a fire mask NetCDF file from polygon gpkg data
+
+Example usage:
+`python create_fire_mask.py --fpath /path/to/template_file.nc --polygon /path/to/polygon.gpkg --output /path/to/output_mask.nc`
+
+### adjust_albedo.py
+
+Reduces soil albedo by a specified factor within fire-affected areas defined by a mask file.
+
+Example usage:
+`python adjust_albedo.py --fpath /path/to/albedo_file.nc --mask_file /path/to/fire_mask.nc --plot`
+
+Must first run `create_fire_mask.py`
+
+### adjust_land_cover.py
+
+Adjusts land cover fractions in a UM ancillary file using a fire mask, setting soil and shrub percentages within fire-affected areas.
+
+Example usage:
+`python adjust_land_cover.py --fpath /path/to/land_cover_file.nc --mask_file /path/to/fire_mask.nc --plot`
+
+Must first run `create_fire_mask.py`
+
+## Adjusting initial conditions for soil moisture
+
+Adjusts initial condition soil moisture prior to inner nest recon
+
+This script will be incorporated into the suite and run automatically on the GAL9 domain
+
