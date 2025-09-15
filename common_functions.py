@@ -1006,6 +1006,147 @@ def get_variable_opts(variable):
             'dtype'     : 'int16',
             })
 
+    elif variable == 'upward_air_velocity_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i242', pressure=500.),
+            'plot_title': 'upward air velocity 500hPa',
+            'plot_fname': 'upward_air_velocity_500hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'vmin'      : -1,
+            'vmax'      : 1,
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+
+    elif variable == 'upward_air_velocity_850hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i242', pressure=850.),
+            'plot_title': 'upward air velocity 850hPa',
+            'plot_fname': 'upward_air_velocity_850hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'vmin'      : -1,
+            'vmax'      : 1,
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+
+    elif variable == 'wind_u_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i201', pressure=500.),
+            'plot_title': 'wind u 500hPa',
+            'plot_fname': 'wind_u_500hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+
+    elif variable == 'wind_v_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i202', pressure=500.),
+            'plot_title': 'wind v 500hPa',
+            'plot_fname': 'wind_v_500hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+    
+    elif variable == 'wind_u_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i201', pressure=500.),
+            'plot_title': 'wind u 500hPa',
+            'plot_fname': 'wind_u_500hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+    
+    elif variable == 'wind_v_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i202', pressure=500.),
+            'plot_title': 'wind v 500hPa',
+            'plot_fname': 'wind_v_500hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+
+    elif variable == 'wind_u_850hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i201', pressure=850.),
+            'plot_title': 'wind u 850hPa',
+            'plot_fname': 'wind_u_850hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+
+    elif variable == 'wind_v_850hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s15i202', pressure=850.),
+            'plot_title': 'wind v 850hPa',
+            'plot_fname': 'wind_v_850hPa',
+            'units'     : 'm s-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+    
+    elif variable == 'geopotential_height_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s16i202', pressure=500.),
+            'plot_title': 'geopotential height 500hPa',
+            'plot_fname': 'geopotential_height_500hPa',
+            'units'     : 'm',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverd',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+    
+    elif variable == 'geopotential_height_850hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s16i202', pressure=850.),
+            'plot_title': 'geopotential height 850hPa',
+            'plot_fname': 'geopotential_height_850hPa',
+            'units'     : 'm',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverd',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+    
+    elif variable == 'air_temperature_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s16i203', pressure=500.),
+            'plot_title': 'air temperature 500hPa',
+            'plot_fname': 'air_temperature_500hPa',
+            'units'     : 'K',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverd',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+
+     ['wind_u_500hPa','wind_v_500hPa','wind_u_850hPa','wind_v_850hPa']
+
+    
+
+
     # add variable to opts
     opts.update({'variable':variable})
 

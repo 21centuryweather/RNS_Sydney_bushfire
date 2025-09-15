@@ -40,6 +40,7 @@ user = 'mjl561'
 # define the suite and regions
 cylc_id = 'u-dr216'
 regions = ['control', 'drysoil']
+regions = ['control']
 save_to_netcdf = True # whether to save netcdf files
 
 ########################
@@ -66,13 +67,18 @@ variables_todo = [
 variables = ['stratiform_rainfall_amount','stratiform_rainfall_flux']
 variables = ['land_sea_mask']
 variables = ['stratiform_rainfall_amount']
-variables = ['total_precipitation_rate']
 variables = ['convective_rainfall_flux']
-variables = ['stratiform_rainfall_flux']
 variables = ['surface_altitude']
 variables = ['soil_moisture_l2']
 variables = ['air_temperature']
 variables = ['wind_speed_of_gust']
+variables = ['stratiform_rainfall_flux']
+variables = ['total_precipitation_rate']
+
+# new variables
+variables = ['geopotential_height_500hPa','geopotential_height_850hPa']
+variables = ['upward_air_velocity_500hPa','upward_air_velocity_850hPa']
+variables = ['wind_u_500hPa','wind_v_500hPa','wind_u_850hPa','wind_v_850hPa']
 
 ###############################################################################
 
@@ -284,9 +290,12 @@ if __name__ == "__main__":
                 print(f'saving to netcdf: {fname}')
                 ds.to_netcdf(fname, unlimited_dims='time')
 
-            if 'd0198' in exp:
-                print(f'adding {exp} to ds_all')
-                ds_all[exp] = ds
+            # if 'd0198' in exp:
+            #     print(f'adding {exp} to ds_all')
+            #     ds_all[exp] = ds
+
+            print(f'adding {exp} to ds_all')
+            ds_all[exp] = ds
 
             del(ds, da, da_list)
 
