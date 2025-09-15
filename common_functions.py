@@ -91,7 +91,7 @@ def get_variable_opts(variable):
             'fmt'       : '{:.2f}',
             })
         
-    if variable == 'anthropogenic_heat_flux':
+    elif variable == 'anthropogenic_heat_flux':
         opts.update({
             'constraint': 'm01s03i721',
             'plot_title': 'anthropogenic heat flux',
@@ -104,7 +104,7 @@ def get_variable_opts(variable):
             'fmt'       : '{:.1f}',
             })
         
-    if variable == 'upward_air_velocity':
+    elif variable == 'upward_air_velocity':
         opts.update({
             'constraint': 'upward_air_velocity',
             'plot_title': 'upward air velocity',
@@ -132,7 +132,7 @@ def get_variable_opts(variable):
             'fmt'       : '{:.1f}',
             })
         
-    if variable == 'surface_altitude':
+    elif variable == 'surface_altitude':
         opts.update({
             'constraint': 'surface_altitude',
             'units'     : 'm',
@@ -1142,9 +1142,20 @@ def get_variable_opts(variable):
             'fmt'       : '{:.2f}',
             })
 
-     ['wind_u_500hPa','wind_v_500hPa','wind_u_850hPa','wind_v_850hPa']
+    elif variable == 'air_temperature_850hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s16i203', pressure=850.),
+            'plot_title': 'air temperature 850hPa',
+            'plot_fname': 'air_temperature_850hPa',
+            'units'     : 'K',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverd',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
 
-    
+    else:
+        raise ValueError(f"Variable '{variable}' not recognised. Check common_functions.py")
 
 
     # add variable to opts
