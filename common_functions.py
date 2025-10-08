@@ -1156,6 +1156,30 @@ def get_variable_opts(variable):
             'fmt'       : '{:.2f}',
             })
 
+    elif variable == 'relative_humidity_wrt_ice_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s16i204', pressure=500.),
+            'plot_title': 'relative humidity wrt ice 500hPa',
+            'plot_fname': 'relative_humidity_wrt_ice_500hPa',
+            'units'     : '%',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverd',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+    
+    elif variable == 'relative_humidity_wrt_ice_850hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s16i204', pressure=850.),
+            'plot_title': 'relative humidity wrt ice 850hPa',
+            'plot_fname': 'relative_humidity_wrt_ice_850hPa',
+            'units'     : '%',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverd',
+            'cmap'      : 'turbo',
+            'fmt'       : '{:.2f}',
+            })
+
     else:
         raise ValueError(f"Variable '{variable}' not recognised. Check common_functions.py")
 
