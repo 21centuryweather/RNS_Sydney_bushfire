@@ -174,15 +174,14 @@ def get_variable_opts(variable):
             'dtype'     : 'float32',
             })
 
-    elif variable == 'specific_humidity':
+    elif variable == 'specific_humidity_1p5m':
         opts.update({
             'constraint': 'm01s03i237',
             'plot_title': 'specific humidity (1.5 m)',
             'plot_fname': 'specific_humidity_1p5m',
             'units'     : 'kg/kg',
             'obs_key'   : 'Qair',
-            #'fname'     : 'umnsaa_psurfc',
-            'fname'     : 'umnsaa_pverc',
+            'fname'     : 'umnsaa_pvera',
             'vmin'      : 0.004,
             'vmax'      : 0.020,
             'cmap'      : 'turbo_r',
@@ -1180,6 +1179,36 @@ def get_variable_opts(variable):
             'cmap'      : 'turbo',
             'fmt'       : '{:.2f}',
             })
+
+    elif variable == 'specific_humidity_500hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s30i205', pressure=500.),
+            'plot_title': 'specific humidity 500hPa',
+            'plot_fname': 'specific_humidity_500hPa',
+            'units'     : 'kg kg-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'vmin'      : 0,
+            'vmax'      : 0.02,
+            'fmt'       : '{:.6f}',
+            })
+
+    elif variable == 'specific_humidity_850hPa':
+        opts.update({
+            'constraint': iris.Constraint(name='m01s30i205', pressure=850.),
+            'plot_title': 'specific humidity 850hPa',
+            'plot_fname': 'specific_humidity_850hPa',
+            'units'     : 'kg kg-1',
+            'obs_key'   : 'None',
+            'fname'     : 'umnsaa_pverc',
+            'cmap'      : 'turbo',
+            'vmin'      : 0,
+            'vmax'      : 0.02,
+            'fmt'       : '{:.6f}',
+            })
+    
+
 
     else:
         raise ValueError(f"Variable '{variable}' not recognised. Check common_functions.py")
